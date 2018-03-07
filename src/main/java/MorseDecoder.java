@@ -54,16 +54,22 @@ public class MorseDecoder {
         double[] sampleBuffer = new double[BIN_SIZE * inputFile.getNumChannels()];
         for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
             // Get the right number of samples from the inputFile
+            int num = inputFile.readFrames(sampleBuffer, BIN_SIZE);
             // Sum all the samples together and store them in the returnBuffer
+            double sum = 0.0;
+            for (int sampleIndex = 0; sampleIndex < BIN_SIZE; sampleIndex++){
+                sum += sampleBuffer[sampleIndex];
+            }
+            returnBuffer[binIndex] = sum;
         }
         return returnBuffer;
     }
 
     /** Power threshold for power or no power. You may need to modify this value. */
-    private static final double POWER_THRESHOLD = 10;
+    private static final double POWER_THRESHOLD = 4;
 
     /** Bin threshold for dots or dashes. Related to BIN_SIZE. You may need to modify this value. */
-    private static final int DASH_BIN_COUNT = 8;
+    private static final int DASH_BIN_COUNT = 2;
 
     /**
      * Convert power measurements to dots, dashes, and spaces.
@@ -81,11 +87,47 @@ public class MorseDecoder {
          * There are four conditions to handle. Symbols should only be output when you see
          * transitions. You will also have to store how much power or silence you have seen.
          */
+        boolean wasPower = false;
+        boolean isPower;
+        double[] currentLetter = new double[5];
+        int counter = 0;
 
-        // if ispower and waspower
-        // else if ispower and not waspower
+        for (int binIndex = 0; binIndex < powerMeasurements.length;binIndex++) {
+            if (powerMeasurements[binIndex] > POWER_THRESHOLD) {
+                isPower = true;
+            } else {
+                isPower = false;
+            }
+
+            if (isPower && wasPower) {
+                System.out.println("Power Counter: " + counter);
+                counter += 1;
+            } else if (isPower && !wasPower) {
+                if (counter > DASH_BIN_COUNT){
+                    System.out.print(" ");
+                } else {
+                    System.out.print("");
+                }
+                counter = 1;
+            } else if (!isPower && !wasPower) {
+                System.out.println("Silence Counter: " + counter);
+                counter += 1;
+            } else if (!isPower && wasPower) {
+                if (counter > DASH_BIN_COUNT) {
+                    System.out.print("-");
+                }else{
+                    System.out.print(".");
+                }
+                counter = 1;
+            } else {
+                System.out.println("This shouldn't happen");
+            }
+            wasPower = isPower;
+        }
+        // if isPower and wasPower then same letter
+        // else if isPower and not wasPower start new letter
         // else if issilence and wassilence
-        // else if issilence and not wassilence
+        // else if issilence and not wassilence just ended letter
 
         return "";
     }
